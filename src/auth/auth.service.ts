@@ -1,10 +1,40 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { RESPONSE } from 'src/common/Responses';
 import { ApiException } from 'src/middleware/api.exception';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { IUser } from './interfaces/User.interface';
 
 @Injectable()
 export class AuthService {
     private readonly BOT_TOKEN = process.env.BOT_TOKEN;
+    constructor(
+        private readonly jwtService: JwtService,
+        private readonly prisma: PrismaService
+    ) {}
+
+    generateToken(user: IUser): string {
+        return this.jwtService.sign({ username: user.name, sub: user.telegram_id });
+    }
+    async findUser(telegram_id: string): Promise<IUser | null> {
+        const user = await this.prisma.user.findFirst({
+            where: {
+                telegram_id: telegram_id,
+            },
+        });
+
+        return user;
+    }
+
+    async createUser(telegram_id: string, name: string): Promise<IUser | null> {
+        const user = await this.prisma.user.create({
+            data: {
+                telegram_id: telegram_id,
+                name: name,
+            },
+        });
+        return user;
+    }
 
     async validateTelegramData(initData: any): Promise<any> {
         if (!initData) {

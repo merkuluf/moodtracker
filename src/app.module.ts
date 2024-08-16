@@ -6,6 +6,8 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
+import { AuthModule } from './auth/auth.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
     controllers: [AppController, AuthController],
@@ -19,6 +21,10 @@ import { AuthService } from './auth/auth.service';
     ],
     imports: [
         PrismaModule,
+        JwtModule.register({
+            secret: process.env.JWT_SECRET || 'your_secret_key',
+            signOptions: { expiresIn: '1h' },
+        }),
         ThrottlerModule.forRoot([
             {
                 name: 'short',
@@ -31,6 +37,7 @@ import { AuthService } from './auth/auth.service';
                 limit: 100,
             },
         ]),
+        AuthModule,
     ],
 })
 export class AppModule {}

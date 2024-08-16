@@ -3,18 +3,7 @@ import { AuthService } from './auth.service';
 import { LoggingInterceptor } from 'src/interceptors/logging.interceptor';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-interface IUserTG {
-    username: string;
-    first_name: string;
-    id: number;
-}
-
-interface IUser {
-    id: number;
-    name: string;
-    telegram_id: string;
-    email: string;
-}
+import { IUserTG, IUser } from './interfaces/User.interface';
 
 function getUsername(userData: IUserTG) {
     if (userData.username) {
@@ -31,37 +20,25 @@ function getUsername(userData: IUserTG) {
 @UseInterceptors(LoggingInterceptor)
 @Controller('auth')
 export class AuthController {
-    constructor(
-        private readonly authService: AuthService,
-        private readonly prisma: PrismaService
-    ) {}
+    constructor(private readonly authService: AuthService) {}
 
+    // this function validates initData and if user is not registered - recording him and returns token
     @Post('validate')
-    async validateToken(@Headers() headers: any): Promise<IUser> {
+    async validateToken(@Headers() headers: any): Promise<{ token: string }> {
         const { authorization } = headers;
         const initData = authorization.split(' ')[1];
 
         const validationResult = await this.authService.validateTelegramData(initData);
-        const username = getUsername(validationResult);
 
+        const username = getUsername(validationResult);
         const telegram_id = validationResult.id.toString();
 
-        const userExist = await this.prisma.user.findFirst({
-            where: {
-                telegram_id: telegram_id,
-            },
-        });
-
-        if (!userExist) {
-            const newUser = await this.prisma.user.create({
-                data: {
-                    telegram_id: telegram_id,
-                    name: username,
-                },
-            });
-
-            return newUser;
+        let user = await this.authService.findUser(telegram_id);
+        if (!user) {
+            user = await this.authService.createUser(telegram_id, username);
         }
-        return userExist;
+        const token = this.authService.generateToken(user);
+        console.log(token);
+        return { token };
     }
 }

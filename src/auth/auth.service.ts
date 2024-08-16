@@ -1,4 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { RESPONSE } from 'src/common/Responses';
 import { ApiException } from 'src/middleware/api.exception';
 
 @Injectable()
@@ -7,7 +8,7 @@ export class AuthService {
 
     async validateTelegramData(initData: any): Promise<any> {
         if (!initData) {
-            throw new ApiException('initData not found in request', HttpStatus.BAD_REQUEST);
+            throw new ApiException(RESPONSE.NOT_FOUND('initData'), HttpStatus.BAD_REQUEST);
         }
 
         const dataParams = new URLSearchParams(initData);
@@ -45,7 +46,7 @@ export class AuthService {
         const valid = hexHmac === hash;
 
         if (!valid) {
-            throw new ApiException('Unauthorized initData', HttpStatus.UNAUTHORIZED);
+            throw new ApiException(RESPONSE.INVALID('initData'), HttpStatus.UNAUTHORIZED);
         }
 
         return JSON.parse(dataParams.get('user') || '{}');
